@@ -24,9 +24,16 @@ export default new NativeFunction({
       required: false,
       rest: false,
     },
+    {
+      name: 'rebuild',
+      description: 'Whether to rebuild the queue by putting the current track back to the queue instead of history',
+      type: ArgType.Boolean,
+      required: false,
+      rest: false,
+    },
   ],
   output: ArgType.Boolean,
-  async execute(ctx, [guildId, position]) {
+  async execute(ctx, [guildId, position, rebuild]) {
     try {
       const linked = ctx.client.getExtension(ForgeLinked, true)?.lavalink
       if (!linked) return this.customError('ForgeLinked is not initialized')
@@ -49,6 +56,17 @@ export default new NativeFunction({
 
       const toRestore = player.queue.previous.splice(0, pos)
       toRestore.reverse()
+
+      if (rebuild) {
+        if (player.queue.current) {
+          player.queue.current.pluginInfo = player.queue.current.pluginInfo || {}
+          player.queue.current.pluginInfo.clientData =
+            player.queue.current.pluginInfo.clientData || {}
+          player.queue.current.pluginInfo.clientData.previousTrack = true
+          player.queue.tracks.unshift(player.queue.current)
+        }
+      }
+
       player.queue.tracks.unshift(...toRestore)
       await player.skip()
 

@@ -122,6 +122,13 @@ export class ForgeLinked extends ForgeExtension {
     })
 
     this.commands = new ForgeLinkedCommandManager(this.client)
+
+    this.lavalink.on('trackStart', (_player, track) => {
+      if ((track as any)?.pluginInfo?.clientData?.previousTrack) {
+        delete (track as any).pluginInfo.clientData.previousTrack
+      }
+    })
+
     EventManager.load('ForgeLinked', __dirname + `/events`)
     if (this.options.events?.length) {
       this.client.events.load('ForgeLinked', this.options.events)

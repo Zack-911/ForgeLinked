@@ -8,6 +8,9 @@ exports.default = new ForgeLinkedEventManager_1.ForgeLinkedEventHandler({
     version: '2.0.0',
     description: 'Triggered when a track starts playing',
     listener(player, track, payload) {
+        if (track?.pluginInfo?.clientData?.previousTrack) {
+            delete track.pluginInfo.clientData.previousTrack;
+        }
         const commands = this.getExtension(__1.ForgeLinked, true).commands.get('linkedTrackStart');
         const guild = this.guilds.cache.get(player.guildId);
         for (const command of commands) {

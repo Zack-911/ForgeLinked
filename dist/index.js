@@ -63,6 +63,11 @@ class ForgeLinked extends forgescript_1.ForgeExtension {
             linksWhitelist: this.options.linksWhitelist ?? [],
         });
         this.commands = new ForgeLinkedCommandManager_js_1.ForgeLinkedCommandManager(this.client);
+        this.lavalink.on('trackStart', (_player, track) => {
+            if (track?.pluginInfo?.clientData?.previousTrack) {
+                delete track.pluginInfo.clientData.previousTrack;
+            }
+        });
         forgescript_1.EventManager.load('ForgeLinked', __dirname + `/events`);
         if (this.options.events?.length) {
             this.client.events.load('ForgeLinked', this.options.events);
