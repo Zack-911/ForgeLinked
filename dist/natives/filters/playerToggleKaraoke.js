@@ -45,7 +45,7 @@ exports.default = new forgescript_1.NativeFunction({
             rest: false,
         },
     ],
-    output: forgescript_1.ArgType.Boolean,
+    output: forgescript_1.ArgType.Json,
     async execute(ctx, [guildId, level, monoLevel, filterBand, filterWidth]) {
         try {
             const linked = ctx.client.getExtension(index_js_1.ForgeLinked, true)?.lavalink;
@@ -61,7 +61,7 @@ exports.default = new forgescript_1.NativeFunction({
             if (!player.node?.connected)
                 return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
             const res = await player.filterManager.toggleKaraoke(level, monoLevel, filterBand, filterWidth);
-            return this.success(res);
+            return this.successJSON(res);
         }
         catch (err) {
             return this.customError(`Failed to toggle karaoke: ${err instanceof Error ? err.message : String(err)}`);

@@ -24,7 +24,7 @@ exports.default = new forgescript_1.NativeFunction({
             rest: false,
         },
     ],
-    output: forgescript_1.ArgType.Boolean,
+    output: forgescript_1.ArgType.Json,
     async execute(ctx, [guildId, rate]) {
         try {
             const linked = ctx.client.getExtension(index_js_1.ForgeLinked, true)?.lavalink;
@@ -42,7 +42,7 @@ exports.default = new forgescript_1.NativeFunction({
             if (rate <= 0)
                 return this.customError('Rate must be greater than 0 (use 1 to reset)');
             const res = await player.filterManager.setRate(rate);
-            return this.success(res);
+            return this.successJSON(res);
         }
         catch (err) {
             return this.customError(`Failed to set rate: ${err instanceof Error ? err.message : String(err)}`);

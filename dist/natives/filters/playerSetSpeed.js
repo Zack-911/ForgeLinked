@@ -42,7 +42,7 @@ exports.default = new forgescript_1.NativeFunction({
             if (speed <= 0)
                 return this.customError('Speed must be greater than 0 (use 1 to reset)');
             const res = await player.filterManager.setSpeed(speed);
-            return this.success(res);
+            return this.successJSON(res);
         }
         catch (err) {
             return this.customError(`Failed to set speed: ${err instanceof Error ? err.message : String(err)}`);

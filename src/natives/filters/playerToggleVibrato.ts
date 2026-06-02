@@ -31,7 +31,7 @@ export default new NativeFunction({
       rest: false,
     },
   ],
-  output: ArgType.Boolean,
+  output: ArgType.Json,
   async execute(ctx, [guildId, frequency, depth]) {
     try {
       const linked = ctx.client.getExtension(ForgeLinked, true)?.lavalink
@@ -51,7 +51,7 @@ export default new NativeFunction({
         frequency as number | undefined,
         depth as number | undefined,
       )
-      return this.success(res)
+      return this.successJSON(res)
     } catch (err) {
       return this.customError(
         `Failed to toggle vibrato: ${err instanceof Error ? err.message : String(err)}`,

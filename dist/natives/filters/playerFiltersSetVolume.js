@@ -24,7 +24,7 @@ exports.default = new forgescript_1.NativeFunction({
             rest: false,
         },
     ],
-    output: forgescript_1.ArgType.Boolean,
+    output: forgescript_1.ArgType.Json,
     async execute(ctx, [guildId, volume]) {
         try {
             const linked = ctx.client.getExtension(index_js_1.ForgeLinked, true)?.lavalink;
@@ -42,7 +42,7 @@ exports.default = new forgescript_1.NativeFunction({
             if (volume < 0 || volume > 5)
                 return this.customError('Filter volume must be between 0 and 5');
             const res = await player.filterManager.setVolume(volume);
-            return this.success(res);
+            return this.successJSON(res);
         }
         catch (err) {
             return this.customError(`Failed to set filter volume: ${err instanceof Error ? err.message : String(err)}`);

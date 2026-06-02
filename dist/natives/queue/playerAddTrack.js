@@ -95,9 +95,7 @@ exports.default = new forgescript_1.NativeFunction({
                 trackUri: result.loadType !== 'playlist' ? firstTrack.info.uri : null,
                 trackImage: firstTrack.info.artworkUrl,
                 trackDuration: isStream ? null : rawDurationMs,
-                trackDurationFormatted: isStream
-                    ? 'LIVE'
-                    : formatDuration(rawDurationMs),
+                trackDurationFormatted: isStream ? 'LIVE' : formatDuration(rawDurationMs),
                 playlistDuration: result.loadType === 'playlist' ? playlistDurationMs : null,
                 playlistDurationFormatted: result.loadType === 'playlist' ? formatDuration(playlistDurationMs) : null,
                 isStream,

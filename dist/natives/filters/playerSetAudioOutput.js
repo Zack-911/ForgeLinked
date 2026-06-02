@@ -32,7 +32,7 @@ exports.default = new forgescript_1.NativeFunction({
             rest: false,
         },
     ],
-    output: forgescript_1.ArgType.Boolean,
+    output: forgescript_1.ArgType.Json,
     async execute(ctx, [guildId, audioOutput]) {
         try {
             const linked = ctx.client.getExtension(index_js_1.ForgeLinked, true)?.lavalink;
@@ -64,7 +64,7 @@ exports.default = new forgescript_1.NativeFunction({
                     await player.filterManager.setAudioOutput(output);
                     // Success — if we fell back, log it so the user knows
                     if (output !== audioOutput) {
-                        console.warn(`[ForgeLinked] $playerSetAudioOutput: '${audioOutput}' failed, fell back to '${output}'`);
+                        this.customError(`Failed to set audio output '${audioOutput}', fell back to '${output}'`);
                     }
                     return this.success();
                 }

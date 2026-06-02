@@ -45,7 +45,7 @@ export default new NativeFunction({
       rest: false,
     },
   ],
-  output: ArgType.Boolean,
+  output: ArgType.Json,
   async execute(ctx, [guildId, level, monoLevel, filterBand, filterWidth]) {
     try {
       const linked = ctx.client.getExtension(ForgeLinked, true)?.lavalink
@@ -67,7 +67,7 @@ export default new NativeFunction({
         filterBand as number | undefined,
         filterWidth as number | undefined,
       )
-      return this.success(res)
+      return this.successJSON(res)
     } catch (err) {
       return this.customError(
         `Failed to toggle karaoke: ${err instanceof Error ? err.message : String(err)}`,
