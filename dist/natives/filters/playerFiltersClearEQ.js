@@ -32,8 +32,8 @@ exports.default = new forgescript_1.NativeFunction({
                 return this.customError('Player not found');
             if (!player.node?.connected)
                 return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
-            const res = await player.filterManager.clearEQ();
-            return this.successJSON(res);
+            await player.filterManager.clearEQ();
+            return this.successJSON({ success: true, equalizer: [] });
         }
         catch (err) {
             return this.customError(`Failed to clear EQ: ${err instanceof Error ? err.message : String(err)}`);

@@ -84,20 +84,37 @@ export default new NativeFunction({
 
       const requester = result.tracks[0].requester as User
 
+      // Duration helpers
+      const firstTrack = result.tracks[0]
+      const rawDurationMs: number = firstTrack.info.duration ?? 0
+      const isStream: boolean = firstTrack.info.isStream ?? false
+
+      // Total playlist duration in ms (sum of all tracks)
+      const playlistDurationMs: number =
+        result.loadType === 'playlist'
+          ? result.tracks.reduce((acc, t) => acc + (t.info.duration ?? 0), 0)
+          : rawDurationMs
+
       return this.successJSON({
         status: 'success',
         type: result.loadType,
         message:
           result.loadType === 'playlist'
             ? `Queued ${result.tracks.length} tracks from ${result.playlist?.title}`
-            : `Queued ${result.tracks[0].info.title}`,
+            : `Queued ${firstTrack.info.title}`,
         playlistName: result.loadType === 'playlist' ? result.playlist?.title : null,
         playlistUri: result.loadType === 'playlist' ? result.playlist?.uri : null,
         trackCount: result.loadType === 'playlist' ? result.tracks.length : 1,
-        trackTitle: result.loadType !== 'playlist' ? result.tracks[0].info.title : null,
-        trackAuthor: result.loadType !== 'playlist' ? result.tracks[0].info.author : null,
-        trackUri: result.loadType !== 'playlist' ? result.tracks[0].info.uri : null,
-        trackImage: result.tracks[0].info.artworkUrl,
+        trackTitle: result.loadType !== 'playlist' ? firstTrack.info.title : null,
+        trackAuthor: result.loadType !== 'playlist' ? firstTrack.info.author : null,
+        trackUri: result.loadType !== 'playlist' ? firstTrack.info.uri : null,
+        trackImage: firstTrack.info.artworkUrl,
+        trackDuration: isStream ? null : rawDurationMs,
+        trackDurationFormatted: isStream ? 'LIVE' : formatDuration(rawDurationMs),
+        playlistDuration: result.loadType === 'playlist' ? playlistDurationMs : null,
+        playlistDurationFormatted:
+          result.loadType === 'playlist' ? formatDuration(playlistDurationMs) : null,
+        isStream,
         requester: requester?.id || 'Unknown',
       })
     } catch (error: any) {
@@ -105,3 +122,14 @@ export default new NativeFunction({
     }
   },
 })
+
+/** Converts milliseconds to a human-readable HH:MM:SS (or MM:SS) string */
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  const mm = String(minutes).padStart(2, '0')
+  const ss = String(seconds).padStart(2, '0')
+  return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`
+}

@@ -33,8 +33,11 @@ export default new NativeFunction({
         return this.customError(
           'Lavalink node is not connected. Please wait for the node to reconnect.',
         )
-      const res = await player.filterManager.resetFilters()
-      return this.successJSON(res)
+      await player.filterManager.resetFilters()
+      return this.successJSON({
+        success: true,
+        filters: JSON.parse(JSON.stringify(player.filterManager.filters)),
+      })
     } catch (err) {
       return this.customError(
         `Failed to reset filters: ${err instanceof Error ? err.message : String(err)}`,

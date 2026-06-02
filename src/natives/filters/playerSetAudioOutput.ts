@@ -25,14 +25,15 @@ export default new NativeFunction({
     },
     {
       name: 'audioOutput',
-      description: 'The audio output to set',
+      description: 'The audio output to set (mono, stereo, left, right)',
       type: ArgType.Enum,
       enum: AudioOutput,
       required: true,
       rest: false,
     },
   ],
-  execute(ctx, [guildId, audioOutput]) {
+  output: ArgType.Boolean,
+  async execute(ctx, [guildId, audioOutput]) {
     try {
       const linked = ctx.client.getExtension(ForgeLinked, true)?.lavalink
       if (!linked) return this.customError('ForgeLinked is not initialized')
@@ -43,8 +44,46 @@ export default new NativeFunction({
         )
       const player = linked.getPlayer(guildId.id)
       if (!player) return this.customError('Player not found')
-      player.filterManager.setAudioOutput(audioOutput)
-      return this.success()
+      if (!player.node?.connected)
+        return this.customError(
+          'Lavalink node is not connected. Please wait for the node to reconnect.',
+        )
+
+      // Attempt the requested output; if it fails (e.g. Stereo unsupported by node),
+      // fall back through the remaining output types so the player never silently breaks.
+      const fallbackOrder: AudioOutput[] = [
+        audioOutput as AudioOutput,
+        AudioOutput.Stereo,
+        AudioOutput.Mono,
+        AudioOutput.Left,
+        AudioOutput.Right,
+      ]
+
+      // Deduplicate while preserving order
+      const attempts = [...new Set(fallbackOrder)]
+
+      let lastErr: unknown
+      for (const output of attempts) {
+        try {
+          await player.filterManager.setAudioOutput(output)
+          // Success — if we fell back, log it so the user knows
+          if (output !== audioOutput) {
+            console.warn(
+              `[ForgeLinked] $playerSetAudioOutput: '${audioOutput}' failed, fell back to '${output}'`,
+            )
+          }
+          return this.success()
+        } catch (err) {
+          lastErr = err
+          // Only continue looping if this wasn't the requested output (i.e., we are in fallback)
+          if (output === audioOutput) continue
+          break
+        }
+      }
+
+      return this.customError(
+        `Failed to set audio output '${audioOutput}': ${lastErr instanceof Error ? lastErr.message : String(lastErr)}`,
+      )
     } catch (err) {
       return this.customError(
         `Failed to set audio output: ${err instanceof Error ? err.message : String(err)}`,

@@ -11,7 +11,7 @@ import path from 'path'
 import { TypedEmitter } from 'tiny-typed-emitter'
 
 import { ForgeLinkedCommandManager } from './structures/ForgeLinkedCommandManager.js'
-import { IForgeLinkedEvents } from './structures/ForgeLinkedEventManager'
+import { IForgeLinkedEvents } from './structures/ForgeLinkedEventManager.js'
 
 /* -------------------------------------------------------------------------- */
 /*                                Type Options                                */

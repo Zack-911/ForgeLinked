@@ -26,7 +26,8 @@ export default new NativeFunction({
     },
     {
       name: 'rebuild',
-      description: 'Whether to rebuild the queue by putting the current track back to the queue instead of history',
+      description:
+        'Whether to rebuild the queue by putting the current track back to the queue instead of history',
       type: ArgType.Boolean,
       required: false,
       rest: false,

@@ -77,8 +77,8 @@ exports.default = new forgescript_1.NativeFunction({
                 return this.customError('Player not found');
             if (!player.node?.connected)
                 return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
-            const res = await player.filterManager.setEQ({ band, gain });
-            return this.successJSON(res);
+            await player.filterManager.setEQ({ band, gain });
+            return this.successJSON({ band, gain, success: true });
         }
         catch (err) {
             return this.customError(`Failed to set EQ: ${err instanceof Error ? err.message : String(err)}`);

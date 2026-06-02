@@ -1,7 +1,7 @@
 import { ForgeClient, ForgeExtension } from '@tryforge/forgescript';
 import { LavalinkManager, LavalinkNodeOptions, Player, PlayerEvents, SearchPlatform, Track } from 'lavalink-client';
 import { ForgeLinkedCommandManager } from './structures/ForgeLinkedCommandManager.js';
-import { IForgeLinkedEvents } from './structures/ForgeLinkedEventManager';
+import { IForgeLinkedEvents } from './structures/ForgeLinkedEventManager.js';
 export interface ForgeLinkSetupOptions {
     nodes: LavalinkNodeOptions[];
     defaultVolume?: number;
