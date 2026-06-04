@@ -40,7 +40,7 @@ exports.default = new forgescript_1.NativeFunction({
             if (!player.node?.connected)
                 return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
             const res = await player.filterManager.toggleRotation(rotationHz);
-            return this.successJSON(res);
+            return this.successJSON(JSON.stringify(res));
         }
         catch (err) {
             return this.customError(`Failed to toggle rotation: ${err instanceof Error ? err.message : String(err)}`);

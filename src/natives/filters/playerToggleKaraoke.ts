@@ -67,7 +67,7 @@ export default new NativeFunction({
         filterBand as number | undefined,
         filterWidth as number | undefined,
       )
-      return this.successJSON(res)
+      return this.successJSON(JSON.stringify(res))
     } catch (err) {
       return this.customError(
         `Failed to toggle karaoke: ${err instanceof Error ? err.message : String(err)}`,

@@ -61,7 +61,7 @@ exports.default = new forgescript_1.NativeFunction({
             if (!player.node?.connected)
                 return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
             const res = await player.filterManager.toggleKaraoke(level, monoLevel, filterBand, filterWidth);
-            return this.successJSON(res);
+            return this.successJSON(JSON.stringify(res));
         }
         catch (err) {
             return this.customError(`Failed to toggle karaoke: ${err instanceof Error ? err.message : String(err)}`);
