@@ -29,7 +29,9 @@ export default new NativeFunction({
         )
       const player = linked.getPlayer(guildId.id)
       if (!player) return this.customError('Player not found')
-      player.queue.utils.destroy()
+      const lengthQ = player.queue.tracks.length
+      if (lengthQ <= 0) return this.success(false)
+      player.queue.splice(0, lengthQ)
       return this.success(true)
     } catch (err) {
       return this.customError(

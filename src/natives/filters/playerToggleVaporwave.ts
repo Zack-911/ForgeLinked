@@ -60,7 +60,7 @@ export default new NativeFunction({
         pitch as number | undefined,
         rate as number | undefined,
       )
-      return this.successJSON(res)
+      return this.successJSON(JSON.stringify(res))
     } catch (err) {
       return this.customError(
         `Failed to toggle vaporwave: ${err instanceof Error ? err.message : String(err)}`,

@@ -51,7 +51,7 @@ export default new NativeFunction({
         frequency as number | undefined,
         depth as number | undefined,
       )
-      return this.successJSON(res)
+      return this.successJSON(JSON.stringify(res))
     } catch (err) {
       return this.customError(
         `Failed to toggle vibrato: ${err instanceof Error ? err.message : String(err)}`,

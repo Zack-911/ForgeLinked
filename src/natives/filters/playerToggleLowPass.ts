@@ -41,7 +41,7 @@ export default new NativeFunction({
           'Lavalink node is not connected. Please wait for the node to reconnect.',
         )
       const res = await player.filterManager.toggleLowPass(smoothing as number | undefined)
-      return this.successJSON(res)
+      return this.successJSON(JSON.stringify(res))
     } catch (err) {
       return this.customError(
         `Failed to toggle low pass: ${err instanceof Error ? err.message : String(err)}`,
