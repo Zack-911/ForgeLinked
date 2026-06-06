@@ -1,0 +1,505 @@
+import { Logger } from '@tryforge/forgescript'
+import { Player, SearchPlatform, Track } from 'lavalink-client'
+
+import { LocalSearchAuthManager, localSearchHeaders } from './auth.js'
+
+export interface PlayerRelatingOptions {
+  defaultAutoPlaySource?: SearchPlatform
+  defaultSearchPlatform?: SearchPlatform
+  auth?: LocalSearchAuthManager
+}
+
+type SearchAttempt = {
+  query: string
+  source: SearchPlatform
+}
+
+type LocalRelatedCandidate = {
+  url: string
+  title?: string
+  author?: string
+  identifier?: string
+  source: string
+}
+
+type JsonResponse<T> = {
+  status: number
+  data: T | null
+}
+
+export class PlayerRelatingManager {
+  private readonly auth: LocalSearchAuthManager
+  private readonly lockKey = 'forgelinked_autoplay_running'
+
+  constructor(private readonly options: PlayerRelatingOptions = {}) {
+    this.auth = options.auth ?? new LocalSearchAuthManager()
+  }
+
+  async autoplay(player: Player, lastPlayedTrack: Track): Promise<void> {
+    if (!(player as any).autoPlay) return
+    if (player.queue.tracks.length > 0) return
+    if (player.getData<boolean>(this.lockKey)) return
+
+    player.setData(this.lockKey, true)
+
+    try {
+      if (await this.queueLocalRelatedCandidate(player, lastPlayedTrack)) return
+      if (await this.queueLavalinkSearchCandidate(player, lastPlayedTrack)) return
+
+      Logger.warn(
+        `ForgeLinked autoplay: no usable related track found for "${lastPlayedTrack.info.title}"`,
+      )
+    } catch (err) {
+      Logger.error('ForgeLinked autoplay error:', err)
+    } finally {
+      player.deleteData(this.lockKey)
+    }
+  }
+
+  private async queueLocalRelatedCandidate(player: Player, baseTrack: Track): Promise<boolean> {
+    const candidates = await this.relatedCandidates(baseTrack).catch(() => [])
+    if (!candidates.length) return false
+
+    for (const candidate of candidates) {
+      if (this.isBlockedCandidate(player, baseTrack, candidate)) continue
+
+      const result = await player.search(candidate.url, baseTrack.requester).catch(() => null)
+      if (
+        !result ||
+        !result.tracks.length ||
+        result.loadType === 'empty' ||
+        result.loadType === 'error'
+      ) {
+        continue
+      }
+
+      const pick = this.pickTrack(player, baseTrack, result.tracks as Track[])
+      if (!pick) continue
+
+      player.queue.add(pick)
+      return true
+    }
+
+    return false
+  }
+
+  private async queueLavalinkSearchCandidate(player: Player, baseTrack: Track): Promise<boolean> {
+    for (const attempt of this.buildSearchAttempts(baseTrack)) {
+      const result = await player
+        .search({ query: attempt.query, source: attempt.source }, baseTrack.requester)
+        .catch(() => null)
+
+      if (
+        !result ||
+        !result.tracks.length ||
+        result.loadType === 'empty' ||
+        result.loadType === 'error'
+      ) {
+        continue
+      }
+
+      const pick = this.pickTrack(player, baseTrack, result.tracks as Track[])
+      if (!pick) continue
+
+      player.queue.add(pick)
+      return true
+    }
+
+    return false
+  }
+
+  private async relatedCandidates(track: Track): Promise<LocalRelatedCandidate[]> {
+    switch (this.sourceName(track)) {
+      case 'youtube':
+      case 'youtubemusic':
+        return this.youtubeRelated(track)
+      case 'soundcloud':
+        return this.soundCloudRelated(track)
+      case 'spotify':
+        return this.spotifyRelated(track)
+      default:
+        return []
+    }
+  }
+
+  private async youtubeRelated(track: Track): Promise<LocalRelatedCandidate[]> {
+    const videoId = this.youtubeVideoId(track)
+    if (!videoId) return []
+
+    const client: Record<string, unknown> = {
+      clientName: 1,
+      clientVersion: '2.20261231',
+      hl: 'en',
+      gl: 'US',
+    }
+
+    const res = await this.requestJson<any>(
+      'https://m.youtube.com/youtubei/v1/next?prettyPrint=false&fields=contents.twoColumnWatchNextResults.secondaryResults.secondaryResults.results(lockupViewModel)',
+      {
+        method: 'POST',
+        headers: {
+          ...localSearchHeaders,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ context: { client }, videoId }),
+      },
+    )
+
+    const results =
+      res.data?.contents?.twoColumnWatchNextResults?.secondaryResults?.secondaryResults?.results ??
+      []
+
+    return results
+      .map((item: any): LocalRelatedCandidate | null => {
+        const view = item.lockupViewModel
+        if (!view?.contentId || !String(view.contentType ?? '').endsWith('_VIDEO')) return null
+
+        return {
+          source: 'youtube',
+          identifier: view.contentId,
+          url: `https://www.youtube.com/watch?v=${view.contentId}`,
+          title: view.metadata?.lockupMetadataViewModel?.title?.content,
+          author:
+            view.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel
+              ?.metadataRows?.[0]?.metadataParts?.[0]?.text?.content,
+        }
+      })
+      .filter((item: LocalRelatedCandidate | null): item is LocalRelatedCandidate => !!item?.url)
+  }
+
+  private async soundCloudRelated(
+    track: Track,
+    refreshAuth = false,
+  ): Promise<LocalRelatedCandidate[]> {
+    const clientId = await this.auth.getSoundCloudClientId(refreshAuth)
+    if (!clientId) return []
+
+    const trackId = await this.soundCloudTrackId(track, clientId)
+    if (!trackId) {
+      if (!refreshAuth) return this.soundCloudRelated(track, true)
+      return []
+    }
+
+    const url = new URL(`https://api-v2.soundcloud.com/tracks/${trackId}/related`)
+    url.searchParams.set('client_id', clientId)
+    url.searchParams.set('limit', '5')
+
+    const res = await this.requestJson<{ collection?: any[] }>(url.toString(), {
+      headers: localSearchHeaders,
+    })
+
+    if (res.status === 401 && !refreshAuth) return this.soundCloudRelated(track, true)
+
+    return (res.data?.collection ?? [])
+      .map((item: any): LocalRelatedCandidate | null => {
+        if (!item.permalink_url) return null
+
+        return {
+          source: 'soundcloud',
+          identifier: item.id ? String(item.id) : undefined,
+          url: item.permalink_url,
+          title: item.title,
+          author: item.user?.permalink ?? item.user?.username,
+        }
+      })
+      .filter((item: LocalRelatedCandidate | null): item is LocalRelatedCandidate => !!item?.url)
+  }
+
+  private async spotifyRelated(
+    track: Track,
+    refreshAuth = false,
+  ): Promise<LocalRelatedCandidate[]> {
+    const trackId = this.spotifyTrackId(track)
+    if (!trackId) return []
+
+    const auth = await this.auth.getSpotifyAuth(refreshAuth)
+    if (!auth) return []
+
+    const res = await this.requestJson<any>('https://api-partner.spotify.com/pathfinder/v2/query', {
+      method: 'POST',
+      headers: {
+        ...localSearchHeaders,
+        Accept: 'application/json',
+        'App-Platform': 'WebPlayer',
+        Authorization: `Bearer ${auth.accessToken}`,
+        'Client-Token': auth.clientToken,
+        'Content-Type': 'application/json',
+        Origin: 'https://open.spotify.com',
+      },
+      body: JSON.stringify({
+        variables: {
+          uri: `spotify:track:${trackId}`,
+          limit: 5,
+        },
+        operationName: 'internalLinkRecommenderTrack',
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash: 'c77098ee9d6ee8ad3eb844938722db60570d040b49f41f5ec6e7be9160a7c86b',
+          },
+        },
+      }),
+    })
+
+    if ((res.status === 401 || res.status === 400) && !refreshAuth) {
+      return this.spotifyRelated(track, true)
+    }
+    if (res.status === 403 || res.status === 429) return []
+
+    const items = res.data?.data?.seoRecommendedTrack?.items ?? []
+    return items
+      .map((item: any): LocalRelatedCandidate | null => {
+        const data = item.data
+        if (!data?.id) return null
+
+        const artists =
+          data.artists?.items
+            ?.map((artist: any) => artist.profile?.name)
+            .filter(Boolean)
+            .join(', ') ?? ''
+
+        return {
+          source: 'spotify',
+          identifier: data.id,
+          url: `https://open.spotify.com/track/${data.id}`,
+          title: data.name,
+          author: artists,
+        }
+      })
+      .filter((item: LocalRelatedCandidate | null): item is LocalRelatedCandidate => !!item?.url)
+  }
+
+  private async soundCloudTrackId(track: Track, clientId: string): Promise<string | null> {
+    if (/^\d+$/.test(track.info.identifier)) return track.info.identifier
+    if (!track.info.uri) return null
+
+    const url = new URL('https://api-v2.soundcloud.com/resolve')
+    url.searchParams.set('client_id', clientId)
+    url.searchParams.set('url', track.info.uri)
+
+    const res = await this.requestJson<{ id?: number | string }>(url.toString(), {
+      headers: localSearchHeaders,
+    })
+
+    return res.data?.id ? String(res.data.id) : null
+  }
+
+  private buildSearchAttempts(track: Track): SearchAttempt[] {
+    const sourceName = this.sourceName(track)
+    const textQuery = this.textQuery(track)
+    const attempts: SearchAttempt[] = []
+
+    const add = (query: string, source: SearchPlatform | string | undefined) => {
+      const trimmed = query.trim()
+      if (!trimmed || !source) return
+
+      const attempt = { query: trimmed, source: source as SearchPlatform }
+      if (attempts.some((item) => item.query === attempt.query && item.source === attempt.source))
+        return
+      attempts.push(attempt)
+    }
+
+    if (track.info.identifier) {
+      switch (sourceName) {
+        case 'spotify':
+          add(track.info.identifier, 'sprec')
+          break
+        case 'applemusic':
+        case 'apple music':
+          add(track.info.identifier, 'amrec')
+          break
+        case 'deezer':
+          add(track.info.identifier, 'dzrec')
+          break
+        case 'yandex':
+        case 'yandexmusic':
+          add(track.info.identifier, 'ymrec')
+          break
+        case 'vkmusic':
+        case 'vk':
+          add(track.info.identifier, 'vkrec')
+          break
+        case 'tidal':
+          add(track.info.identifier, 'tdrec')
+          break
+        case 'qobuz':
+          add(track.info.identifier, 'qbrec')
+          break
+      }
+    }
+
+    if (sourceName === 'soundcloud') add(textQuery, 'scsearch')
+
+    const broaderQueries = this.broaderTextQueries(track)
+    for (const source of this.textSearchSources(sourceName)) {
+      add(textQuery, source)
+      for (const query of broaderQueries) add(query, source)
+    }
+
+    return attempts
+  }
+
+  private textSearchSources(sourceName: string): SearchPlatform[] {
+    const preferred =
+      this.isTextSearchSource(this.options.defaultAutoPlaySource) &&
+      sourceName !== 'youtube' &&
+      sourceName !== 'youtubemusic'
+        ? this.options.defaultAutoPlaySource
+        : this.options.defaultSearchPlatform
+
+    return [preferred, 'ytmsearch' as SearchPlatform, 'ytsearch' as SearchPlatform].filter(
+      (source, index, sources): source is SearchPlatform =>
+        this.isTextSearchSource(source) && sources.indexOf(source) === index,
+    )
+  }
+
+  private isTextSearchSource(source: SearchPlatform | undefined): source is SearchPlatform {
+    return typeof source === 'string' && source.endsWith('search')
+  }
+
+  private pickTrack(player: Player, baseTrack: Track, tracks: Track[]): Track | null {
+    const blockedIdentifiers = new Set<string>()
+    const blockedUris = new Set<string>()
+
+    const block = (track: Track | undefined | null) => {
+      if (!track) return
+      if (track.info.identifier) blockedIdentifiers.add(track.info.identifier)
+      if (track.info.uri) blockedUris.add(track.info.uri)
+    }
+
+    block(baseTrack)
+    block(player.queue.current as Track | null)
+    for (const track of player.queue.previous ?? []) block(track as Track)
+    for (const track of player.queue.tracks ?? []) block(track as Track)
+
+    const pool = tracks.filter((track) => {
+      if (track.info.identifier && blockedIdentifiers.has(track.info.identifier)) return false
+      if (track.info.uri && blockedUris.has(track.info.uri)) return false
+      return !this.hasSimilarTitle(baseTrack, track)
+    })
+
+    if (!pool.length) return null
+
+    const candidates = pool.slice(0, 10)
+    return candidates[Math.floor(Math.random() * candidates.length)]
+  }
+
+  private isBlockedCandidate(
+    player: Player,
+    baseTrack: Track,
+    candidate: LocalRelatedCandidate,
+  ): boolean {
+    if (candidate.url === baseTrack.info.uri || candidate.identifier === baseTrack.info.identifier)
+      return true
+    if (this.hasSimilarLocalTitle(baseTrack, candidate)) return true
+
+    const queuedTracks = [
+      player.queue.current,
+      ...(player.queue.previous ?? []),
+      ...(player.queue.tracks ?? []),
+    ]
+
+    return queuedTracks.some((track) => {
+      if (!track) return false
+      if (candidate.url && track.info.uri === candidate.url) return true
+      return !!candidate.identifier && track.info.identifier === candidate.identifier
+    })
+  }
+
+  private hasSimilarLocalTitle(baseTrack: Track, candidate: LocalRelatedCandidate): boolean {
+    const baseTitle = this.normalize(baseTrack.info.title)
+    const candidateTitle = this.normalize(candidate.title ?? '')
+    if (!baseTitle || !candidateTitle) return false
+    if (baseTitle === candidateTitle) return true
+
+    const baseAuthor = this.normalize(baseTrack.info.author)
+    const candidateAuthor = this.normalize(candidate.author ?? '')
+    if (baseAuthor && candidateAuthor && baseAuthor === candidateAuthor) {
+      return baseTitle.includes(candidateTitle) || candidateTitle.includes(baseTitle)
+    }
+
+    return false
+  }
+
+  private hasSimilarTitle(baseTrack: Track, candidate: Track): boolean {
+    const baseTitle = this.normalize(baseTrack.info.title)
+    const candidateTitle = this.normalize(candidate.info.title)
+    if (!baseTitle || !candidateTitle) return false
+    if (baseTitle === candidateTitle) return true
+
+    const baseAuthor = this.normalize(baseTrack.info.author)
+    const candidateAuthor = this.normalize(candidate.info.author)
+    if (baseAuthor && candidateAuthor && baseAuthor === candidateAuthor) {
+      return baseTitle.includes(candidateTitle) || candidateTitle.includes(baseTitle)
+    }
+
+    return false
+  }
+
+  private sourceName(track: Track): string {
+    const source = String(track.info.sourceName ?? '')
+      .toLowerCase()
+      .replace(/\s+/g, '')
+    if (source) return source
+
+    const uri = track.info.uri.toLowerCase()
+    if (uri.includes('music.youtube.com')) return 'youtubemusic'
+    if (uri.includes('youtube.com') || uri.includes('youtu.be')) return 'youtube'
+    if (uri.includes('soundcloud.com')) return 'soundcloud'
+    if (uri.includes('spotify.com')) return 'spotify'
+    if (uri.includes('music.apple.com')) return 'applemusic'
+    if (uri.includes('deezer.com')) return 'deezer'
+    return ''
+  }
+
+  private normalize(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+  }
+
+  private textQuery(track: Track): string {
+    return `${track.info.author} ${track.info.title}`.trim() || track.info.title || 'popular music'
+  }
+
+  private broaderTextQueries(track: Track): string[] {
+    const author = track.info.author.trim()
+    if (!author) return ['popular music']
+
+    return [`${author} mix`, `${author} songs`]
+  }
+
+  private youtubeVideoId(track: Track): string | null {
+    if (/^[A-Za-z0-9_-]{11}$/.test(track.info.identifier)) return track.info.identifier
+
+    return (
+      track.info.uri.match(/[?&]v=([A-Za-z0-9_-]{11})/)?.[1] ??
+      track.info.uri.match(/youtu\.be\/([A-Za-z0-9_-]{11})/)?.[1] ??
+      track.info.uri.match(/\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})/)?.[1] ??
+      null
+    )
+  }
+
+  private spotifyTrackId(track: Track): string | null {
+    if (/^[A-Za-z0-9]{22}$/.test(track.info.identifier)) return track.info.identifier
+
+    return (
+      track.info.identifier.match(/spotify:track:([A-Za-z0-9]+)/)?.[1] ??
+      track.info.uri.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/)?.[1] ??
+      track.info.uri.match(/spotify:track:([A-Za-z0-9]+)/)?.[1] ??
+      null
+    )
+  }
+
+  private async requestJson<T>(url: string, init: RequestInit): Promise<JsonResponse<T>> {
+    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) })
+    const text = await res.text()
+
+    try {
+      return { status: res.status, data: JSON.parse(text) as T }
+    } catch {
+      return { status: res.status, data: null }
+    }
+  }
+}
