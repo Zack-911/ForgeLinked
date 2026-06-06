@@ -84,7 +84,7 @@ export declare class ForgeLinked extends ForgeExtension {
      *   1. User-supplied `autoPlayFunction` → used as-is (full override).
      *   2. Built-in recommendation engine (only fires when `player.autoPlay === true`):
      *      a. Detect track's source → use platform-native `{platform}rec:{id}` (LavaSrc).
-     *      b. YouTube / YouTube Music → `ytmsearch:{videoUrl}` (YTM radio/related tracks).
+     *      b. YouTube / YouTube Music → text search by title + author.
      *      c. SoundCloud → `scsearch:{title} {author} related`.
      *      d. Generic fallback → configured `defaultAutoPlaySource` or `ytmsearch`.
      *      Results are deduplicated against the current queue + play history.

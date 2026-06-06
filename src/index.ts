@@ -134,11 +134,23 @@ export class ForgeLinked extends ForgeExtension {
       this.client.events.load('ForgeLinked', this.options.events)
     }
 
-    client.on('raw', (packet) => {
+    const sendRawData = (packet: any, attempts = 0): void => {
       this.lavalink.sendRawData(packet).catch((err) => {
+        const message = err instanceof Error ? err.message : String(err)
+        const nodeNotReady =
+          message.includes('Lavalink Node is either not ready or not up to date') ||
+          message.includes('Lavalink-Node is either not ready or not up to date')
+
+        if (nodeNotReady) {
+          if (attempts < 5) setTimeout(() => sendRawData(packet, attempts + 1), 1000)
+          return
+        }
+
         console.error('Failed to send raw data to Lavalink:', err)
       })
-    })
+    }
+
+    client.on('raw', sendRawData)
 
     this.load(path.join(__dirname, './natives'))
     client.on('clientReady', async () => {
@@ -260,7 +272,7 @@ export class ForgeLinked extends ForgeExtension {
    *   1. User-supplied `autoPlayFunction` → used as-is (full override).
    *   2. Built-in recommendation engine (only fires when `player.autoPlay === true`):
    *      a. Detect track's source → use platform-native `{platform}rec:{id}` (LavaSrc).
-   *      b. YouTube / YouTube Music → `ytmsearch:{videoUrl}` (YTM radio/related tracks).
+   *      b. YouTube / YouTube Music → text search by title + author.
    *      c. SoundCloud → `scsearch:{title} {author} related`.
    *      d. Generic fallback → configured `defaultAutoPlaySource` or `ytmsearch`.
    *      Results are deduplicated against the current queue + play history.
@@ -276,6 +288,10 @@ export class ForgeLinked extends ForgeExtension {
       try {
         const { uri = '', title = '', author = '' } = lastPlayedTrack.info
         const fallbackQuery = `${title} ${author}`.trim() || 'popular music'
+        const defaultYouTubeSearchSource =
+          this.options.defaultAutoPlaySource ??
+          (this.options.playerOptions?.defaultSearchPlatform as SearchPlatform | undefined) ??
+          ('ytsearch' as SearchPlatform)
 
         /* ── 1. Build the recommendation query ─────────────────────────── */
         let query: string
@@ -283,19 +299,19 @@ export class ForgeLinked extends ForgeExtension {
 
         // LavaSrc platform-native recommendations
         const recResolved = this._resolveRecQuery(uri, title, author)
+        const isYouTubeTrack =
+          uri.includes('youtube.com') ||
+          uri.includes('youtu.be') ||
+          uri.startsWith('https://www.youtube')
 
         if (recResolved) {
           // Native LavaSrc rec — seed with the track id / title
           query = recResolved.query
           source = recResolved.source
-        } else if (
-          uri.includes('youtube.com') ||
-          uri.includes('youtu.be') ||
-          uri.startsWith('https://www.youtube')
-        ) {
-          // YouTube / YouTube Music → ytmsearch:{videoUrl} triggers YTM radio
-          query = uri
-          source = 'ytmsearch' as SearchPlatform
+        } else if (isYouTubeTrack) {
+          // YouTube URL/radio lookups often return the same track or hit REST timeouts.
+          query = fallbackQuery
+          source = defaultYouTubeSearchSource
         } else if (uri.includes('soundcloud.com')) {
           // SoundCloud — search for related tracks by genre/title
           query = `${title} ${author}`.trim()
@@ -325,17 +341,18 @@ export class ForgeLinked extends ForgeExtension {
         ) {
           // Platform rec / direct URL lookup failed — use a text search fallback.
           // YouTube URL lookups can hit Lavalink's REST timeout before returning radio results.
-          if (recResolved || query === uri) {
+          if (recResolved || query === uri || isYouTubeTrack) {
             const fallbackSource = recResolved
               ? ('ytmsearch' as SearchPlatform)
-              : this.options.defaultAutoPlaySource ??
-                (this.options.playerOptions?.defaultSearchPlatform as SearchPlatform | undefined) ??
-                ('ytsearch' as SearchPlatform)
+              : isYouTubeTrack
+                ? ('ytmsearch' as SearchPlatform)
+                : (this.options.defaultAutoPlaySource ??
+                  (this.options.playerOptions?.defaultSearchPlatform as
+                    | SearchPlatform
+                    | undefined) ??
+                  ('ytsearch' as SearchPlatform))
             const fallback = await player
-              .search(
-                { query: fallbackQuery, source: fallbackSource },
-                lastPlayedTrack.requester,
-              )
+              .search({ query: fallbackQuery, source: fallbackSource }, lastPlayedTrack.requester)
               .catch(() => null)
 
             const fallbackTracks = recResolved
