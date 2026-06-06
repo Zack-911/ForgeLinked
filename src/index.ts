@@ -275,6 +275,7 @@ export class ForgeLinked extends ForgeExtension {
 
       try {
         const { uri = '', title = '', author = '' } = lastPlayedTrack.info
+        const fallbackQuery = `${title} ${author}`.trim() || 'popular music'
 
         /* ── 1. Build the recommendation query ─────────────────────────── */
         let query: string
@@ -308,7 +309,7 @@ export class ForgeLinked extends ForgeExtension {
             this.options.defaultAutoPlaySource ??
             (this.options.playerOptions?.defaultSearchPlatform as SearchPlatform | undefined) ??
             ('ytmsearch' as SearchPlatform)
-          query = `${title} ${author}`.trim() || 'popular music'
+          query = fallbackQuery
         }
 
         /* ── 2. Fetch recommendations ───────────────────────────────────── */
@@ -322,21 +323,31 @@ export class ForgeLinked extends ForgeExtension {
           result.loadType === 'empty' ||
           result.loadType === 'error'
         ) {
-          // Platform rec failed — graceful fallback to ytmsearch title query
-          if (recResolved) {
+          // Platform rec / direct URL lookup failed — use a text search fallback.
+          // YouTube URL lookups can hit Lavalink's REST timeout before returning radio results.
+          if (recResolved || query === uri) {
+            const fallbackSource = recResolved
+              ? ('ytmsearch' as SearchPlatform)
+              : this.options.defaultAutoPlaySource ??
+                (this.options.playerOptions?.defaultSearchPlatform as SearchPlatform | undefined) ??
+                ('ytsearch' as SearchPlatform)
             const fallback = await player
               .search(
-                { query: `${title} ${author}`.trim(), source: 'ytmsearch' as SearchPlatform },
+                { query: fallbackQuery, source: fallbackSource },
                 lastPlayedTrack.requester,
               )
               .catch(() => null)
 
-            if (!fallback?.tracks.length) {
+            const fallbackTracks = recResolved
+              ? (fallback?.tracks ?? [])
+              : (fallback?.tracks?.filter((t: any) => t.info?.uri !== uri) ?? [])
+
+            if (!fallbackTracks.length) {
               Logger.warn(`ForgeLinked autoplay: no recommendations found for "${title}"`)
               return
             }
 
-            const fbTrack = fallback.tracks[0]
+            const fbTrack = fallbackTracks[0]
             player.queue.add(fbTrack)
             return
           }
@@ -363,7 +374,7 @@ export class ForgeLinked extends ForgeExtension {
           const textFallback = await player
             .search(
               {
-                query: `${title} ${author}`.trim() || 'popular music',
+                query: fallbackQuery,
                 source: 'ytmsearch' as SearchPlatform,
               },
               lastPlayedTrack.requester,
