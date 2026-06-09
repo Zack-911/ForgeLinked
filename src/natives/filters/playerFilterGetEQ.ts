@@ -29,7 +29,7 @@ export default new NativeFunction({
         )
       const player = linked.getPlayer(guildId.id)
       if (!player) return this.customError('Player not found')
-      return this.successJSON(player.filterManager.equalizerBands.filter(Boolean))
+      return this.successJSON(Object.values(player.filterManager.equalizerBands).filter(Boolean))
     } catch (err) {
       return this.customError(
         `Failed to get EQ: ${err instanceof Error ? err.message : String(err)}`,
