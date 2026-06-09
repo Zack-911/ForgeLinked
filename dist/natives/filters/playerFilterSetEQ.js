@@ -31,6 +31,17 @@ var Gain;
     Gain[Gain["StrongBoost"] = 1.5] = "StrongBoost";
     Gain[Gain["Double"] = 2] = "Double";
 })(Gain || (Gain = {}));
+function resolveEnumNumber(enumObject, value) {
+    if (typeof value === 'number')
+        return Number.isFinite(value) ? value : undefined;
+    if (typeof value !== 'string')
+        return undefined;
+    const enumValue = enumObject[value];
+    if (typeof enumValue === 'number')
+        return enumValue;
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : undefined;
+}
 exports.default = new forgescript_1.NativeFunction({
     name: '$playerFilterSetEQ',
     description: 'Sets the players equalizer band on-top of the existing ones',
@@ -77,8 +88,23 @@ exports.default = new forgescript_1.NativeFunction({
                 return this.customError('Player not found');
             if (!player.node?.connected)
                 return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
-            await player.filterManager.setEQ({ band, gain });
-            return this.successJSON({ band, gain, success: true });
+            const resolvedBand = resolveEnumNumber(EqBand, band);
+            const resolvedGain = resolveEnumNumber(Gain, gain);
+            if (resolvedBand === undefined ||
+                !Number.isInteger(resolvedBand) ||
+                resolvedBand < 0 ||
+                resolvedBand > 14) {
+                return this.customError('EQ band must be an integer between 0 and 14');
+            }
+            if (resolvedGain === undefined)
+                return this.customError('EQ gain must be a number');
+            await player.filterManager.setEQ({ band: resolvedBand, gain: resolvedGain });
+            return this.successJSON({
+                band: resolvedBand,
+                gain: resolvedGain,
+                success: true,
+                equalizer: player.filterManager.equalizerBands.filter(Boolean),
+            });
         }
         catch (err) {
             return this.customError(`Failed to set EQ: ${err instanceof Error ? err.message : String(err)}`);
