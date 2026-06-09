@@ -61,13 +61,18 @@ export default new NativeFunction({
         return this.customError(
           'Lavalink node is not connected. Please wait for the node to reconnect.',
         )
-      const res = await player.filterManager.toggleKaraoke(
+      await player.filterManager.toggleKaraoke(
         level as number | undefined,
         monoLevel as number | undefined,
         filterBand as number | undefined,
         filterWidth as number | undefined,
       )
-      return this.successJSON(JSON.stringify(res))
+      return this.successJSON({
+        success: true,
+        active: player.filterManager.filters.karaoke,
+        filters: player.filterManager.filters,
+        data: player.filterManager.data,
+      })
     } catch (err) {
       return this.customError(
         `Failed to toggle karaoke: ${err instanceof Error ? err.message : String(err)}`,

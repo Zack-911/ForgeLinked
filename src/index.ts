@@ -178,7 +178,7 @@ export class ForgeLinked extends ForgeExtension {
         // healthy, and failed nodes will fire 'connect' via the listener above
         // once they come back (fallback behaviour).
         Logger.error('Lavalink failed to initialize:', err)
-        this.emitter.emit('error', err as Error)
+        this._emitError(err)
       }
     })
 
@@ -193,10 +193,17 @@ export class ForgeLinked extends ForgeExtension {
         })
       }
     }
-    this.lavalink.nodeManager.on('error', (error) => {
-      Logger.error('Lavalink Error:', error)
+    this.lavalink.nodeManager.on('error', (node, error) => {
+      Logger.error(`Lavalink node "${node.id}" error:`, error)
+      this._emitError(error)
     })
     console.debug(`ForgeLink: Initialized in ${Date.now() - start}ms`)
+  }
+
+  private _emitError(error: unknown) {
+    if (this.emitter.listenerCount('error') === 0) return
+
+    this.emitter.emit('error', error instanceof Error ? error : new Error(String(error)))
   }
 
   private _buildAutoPlayFunction():

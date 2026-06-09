@@ -47,11 +47,16 @@ export default new NativeFunction({
         return this.customError(
           'Lavalink node is not connected. Please wait for the node to reconnect.',
         )
-      const res = await player.filterManager.toggleVibrato(
+      await player.filterManager.toggleVibrato(
         frequency as number | undefined,
         depth as number | undefined,
       )
-      return this.successJSON(JSON.stringify(res))
+      return this.successJSON({
+        success: true,
+        active: player.filterManager.filters.vibrato,
+        filters: player.filterManager.filters,
+        data: player.filterManager.data,
+      })
     } catch (err) {
       return this.customError(
         `Failed to toggle vibrato: ${err instanceof Error ? err.message : String(err)}`,

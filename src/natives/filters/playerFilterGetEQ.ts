@@ -3,15 +3,15 @@ import { ArgType, NativeFunction } from '@tryforge/forgescript'
 import { ForgeLinked } from '../../index.js'
 
 export default new NativeFunction({
-  name: '$playerResetFilters',
-  description: 'Reset the filters of a player',
-  version: '2.1.0',
+  name: '$playerFilterGetEQ',
+  description: 'Get the players equalizer bands',
+  version: '2.3.0',
   brackets: false,
   unwrap: true,
   args: [
     {
       name: 'guildId',
-      description: 'The guild id to reset the filters for',
+      description: 'The guild id to get the equalizer for',
       type: ArgType.Guild,
       required: false,
       rest: false,
@@ -29,18 +29,10 @@ export default new NativeFunction({
         )
       const player = linked.getPlayer(guildId.id)
       if (!player) return this.customError('Player not found')
-      if (!player.node?.connected)
-        return this.customError(
-          'Lavalink node is not connected. Please wait for the node to reconnect.',
-        )
-      await player.filterManager.resetFilters()
-      return this.successJSON({
-        success: true,
-        filters: player.filterManager.filters,
-      })
+      return this.successJSON(player.filterManager.equalizerBands)
     } catch (err) {
       return this.customError(
-        `Failed to reset filters: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to get EQ: ${err instanceof Error ? err.message : String(err)}`,
       )
     }
   },

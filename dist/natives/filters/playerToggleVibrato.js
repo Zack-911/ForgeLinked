@@ -46,8 +46,13 @@ exports.default = new forgescript_1.NativeFunction({
                 return this.customError('Player not found');
             if (!player.node?.connected)
                 return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
-            const res = await player.filterManager.toggleVibrato(frequency, depth);
-            return this.successJSON(JSON.stringify(res));
+            await player.filterManager.toggleVibrato(frequency, depth);
+            return this.successJSON({
+                success: true,
+                active: player.filterManager.filters.vibrato,
+                filters: player.filterManager.filters,
+                data: player.filterManager.data,
+            });
         }
         catch (err) {
             return this.customError(`Failed to toggle vibrato: ${err instanceof Error ? err.message : String(err)}`);

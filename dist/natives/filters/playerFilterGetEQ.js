@@ -3,15 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const forgescript_1 = require("@tryforge/forgescript");
 const index_js_1 = require("../../index.js");
 exports.default = new forgescript_1.NativeFunction({
-    name: '$playerResetFilters',
-    description: 'Reset the filters of a player',
-    version: '2.1.0',
+    name: '$playerFilterGetEQ',
+    description: 'Get the players equalizer bands',
+    version: '2.3.0',
     brackets: false,
     unwrap: true,
     args: [
         {
             name: 'guildId',
-            description: 'The guild id to reset the filters for',
+            description: 'The guild id to get the equalizer for',
             type: forgescript_1.ArgType.Guild,
             required: false,
             rest: false,
@@ -30,17 +30,11 @@ exports.default = new forgescript_1.NativeFunction({
             const player = linked.getPlayer(guildId.id);
             if (!player)
                 return this.customError('Player not found');
-            if (!player.node?.connected)
-                return this.customError('Lavalink node is not connected. Please wait for the node to reconnect.');
-            await player.filterManager.resetFilters();
-            return this.successJSON({
-                success: true,
-                filters: player.filterManager.filters,
-            });
+            return this.successJSON(player.filterManager.equalizerBands);
         }
         catch (err) {
-            return this.customError(`Failed to reset filters: ${err instanceof Error ? err.message : String(err)}`);
+            return this.customError(`Failed to get EQ: ${err instanceof Error ? err.message : String(err)}`);
         }
     },
 });
-//# sourceMappingURL=playerResetFilters.js.map
+//# sourceMappingURL=playerFilterGetEQ.js.map

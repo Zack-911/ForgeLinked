@@ -47,11 +47,16 @@ export default new NativeFunction({
         return this.customError(
           'Lavalink node is not connected. Please wait for the node to reconnect.',
         )
-      const res = await player.filterManager.toggleTremolo(
+      await player.filterManager.toggleTremolo(
         frequency as number | undefined,
         depth as number | undefined,
       )
-      return this.successJSON(JSON.stringify(res))
+      return this.successJSON({
+        success: true,
+        active: player.filterManager.filters.tremolo,
+        filters: player.filterManager.filters,
+        data: player.filterManager.data,
+      })
     } catch (err) {
       return this.customError(
         `Failed to toggle tremolo: ${err instanceof Error ? err.message : String(err)}`,

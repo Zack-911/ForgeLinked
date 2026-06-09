@@ -57,6 +57,7 @@ export declare class ForgeLinked extends ForgeExtension {
     private emitter;
     constructor(options: ForgeLinkSetupOptions);
     init(client: ForgeClient): Promise<void>;
+    private _emitError;
     private _buildAutoPlayFunction;
 }
 export type { PlayerEvents, SearchPlatform, LavalinkNodeOptions };
