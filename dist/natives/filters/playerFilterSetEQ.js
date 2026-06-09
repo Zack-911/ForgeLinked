@@ -103,7 +103,7 @@ exports.default = new forgescript_1.NativeFunction({
                 band: resolvedBand,
                 gain: resolvedGain,
                 success: true,
-                equalizer: player.filterManager.equalizerBands.filter(Boolean),
+                equalizer: Object.values(player.filterManager.equalizerBands).filter(Boolean),
             });
         }
         catch (err) {
