@@ -2,11 +2,11 @@ import { Buffer } from 'buffer'
 import crypto from 'crypto'
 
 export const localSearchUserAgent =
-  'Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0'
+  'Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0'
 
 export const localSearchHeaders = {
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Encoding': 'identity, gzip, br',
+  'Accept-Encoding': 'gzip, br',
   'Accept-Language': 'en-US,en;q=0.9',
   Connection: 'keep-alive',
   Priority: 'u=0, i',

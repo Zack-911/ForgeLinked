@@ -1,4 +1,4 @@
-export declare const localSearchUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0";
+export declare const localSearchUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0";
 export declare const localSearchHeaders: {
     Accept: string;
     'Accept-Encoding': string;
