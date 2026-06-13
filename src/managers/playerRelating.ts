@@ -27,6 +27,20 @@ type JsonResponse<T> = {
   data: T | null
 }
 
+type ItunesSearchResponse = {
+  resultCount?: number
+  results?: ItunesSearchTrack[]
+}
+
+type ItunesSearchTrack = {
+  wrapperType?: string
+  kind?: string
+  trackId?: number
+  trackName?: string
+  artistName?: string
+  trackViewUrl?: string
+}
+
 export class PlayerRelatingManager {
   private readonly auth: LocalSearchAuthManager
   private readonly lockKey = 'forgelinked_autoplay_running'
@@ -117,6 +131,8 @@ export class PlayerRelatingManager {
         return this.soundCloudRelated(track)
       case 'spotify':
         return this.spotifyRelated(track)
+      case 'applemusic':
+        return this.appleMusicRelated(track)
       default:
         return []
     }
@@ -267,6 +283,48 @@ export class PlayerRelatingManager {
         }
       })
       .filter((item: LocalRelatedCandidate | null): item is LocalRelatedCandidate => !!item?.url)
+  }
+
+  private async appleMusicRelated(track: Track): Promise<LocalRelatedCandidate[]> {
+    const baseTrackId = this.appleMusicTrackId(track)
+    const candidates: LocalRelatedCandidate[] = []
+    const seen = new Set<string>()
+
+    for (const query of this.appleMusicSearchQueries(track)) {
+      const url = new URL('https://itunes.apple.com/search')
+      url.searchParams.set('term', query)
+      url.searchParams.set('media', 'music')
+      url.searchParams.set('entity', 'song')
+      url.searchParams.set('limit', '15')
+
+      const res = await this.requestJson<ItunesSearchResponse>(url.toString(), {
+        headers: localSearchHeaders,
+      })
+
+      if (res.status >= 400) continue
+
+      for (const item of res.data?.results ?? []) {
+        const trackId = item.trackId ? String(item.trackId) : undefined
+        if (!item.trackViewUrl || !trackId || trackId === baseTrackId) continue
+        if (item.wrapperType !== 'track' || item.kind !== 'song') continue
+
+        const key = trackId || item.trackViewUrl
+        if (seen.has(key)) continue
+        seen.add(key)
+
+        candidates.push({
+          source: 'applemusic',
+          identifier: trackId,
+          url: item.trackViewUrl,
+          title: item.trackName,
+          author: item.artistName,
+        })
+
+        if (candidates.length >= 10) return candidates
+      }
+    }
+
+    return candidates
   }
 
   private async soundCloudTrackId(track: Track, clientId: string): Promise<string | null> {
@@ -490,6 +548,32 @@ export class PlayerRelatingManager {
       track.info.uri.match(/spotify:track:([A-Za-z0-9]+)/)?.[1] ??
       null
     )
+  }
+
+  private appleMusicTrackId(track: Track): string | null {
+    if (/^\d+$/.test(track.info.identifier)) return track.info.identifier
+
+    return track.info.uri.match(/[?&]i=(\d+)/)?.[1] ?? null
+  }
+
+  private appleMusicSearchQueries(track: Track): string[] {
+    const queries: string[] = []
+    const add = (query: string | undefined) => {
+      const trimmed = query?.trim()
+      if (!trimmed || queries.includes(trimmed)) return
+      queries.push(trimmed)
+    }
+
+    const author = track.info.author.trim()
+    const title = track.info.title.trim()
+    const album = String(track.pluginInfo?.albumName ?? '').trim()
+
+    add(author)
+    if (author && album) add(`${author} ${album}`)
+    if (author && title) add(`${author} ${title}`)
+    add(this.textQuery(track))
+
+    return queries.length ? queries : ['popular music']
   }
 
   private async requestJson<T>(url: string, init: RequestInit): Promise<JsonResponse<T>> {

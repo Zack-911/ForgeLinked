@@ -83,6 +83,8 @@ class PlayerRelatingManager {
                 return this.soundCloudRelated(track);
             case 'spotify':
                 return this.spotifyRelated(track);
+            case 'applemusic':
+                return this.appleMusicRelated(track);
             default:
                 return [];
         }
@@ -211,6 +213,44 @@ class PlayerRelatingManager {
             };
         })
             .filter((item) => !!item?.url);
+    }
+    async appleMusicRelated(track) {
+        const baseTrackId = this.appleMusicTrackId(track);
+        const candidates = [];
+        const seen = new Set();
+        for (const query of this.appleMusicSearchQueries(track)) {
+            const url = new URL('https://itunes.apple.com/search');
+            url.searchParams.set('term', query);
+            url.searchParams.set('media', 'music');
+            url.searchParams.set('entity', 'song');
+            url.searchParams.set('limit', '15');
+            const res = await this.requestJson(url.toString(), {
+                headers: auth_js_1.localSearchHeaders,
+            });
+            if (res.status >= 400)
+                continue;
+            for (const item of res.data?.results ?? []) {
+                const trackId = item.trackId ? String(item.trackId) : undefined;
+                if (!item.trackViewUrl || !trackId || trackId === baseTrackId)
+                    continue;
+                if (item.wrapperType !== 'track' || item.kind !== 'song')
+                    continue;
+                const key = trackId || item.trackViewUrl;
+                if (seen.has(key))
+                    continue;
+                seen.add(key);
+                candidates.push({
+                    source: 'applemusic',
+                    identifier: trackId,
+                    url: item.trackViewUrl,
+                    title: item.trackName,
+                    author: item.artistName,
+                });
+                if (candidates.length >= 10)
+                    return candidates;
+            }
+        }
+        return candidates;
     }
     async soundCloudTrackId(track, clientId) {
         if (/^\d+$/.test(track.info.identifier))
@@ -413,6 +453,30 @@ class PlayerRelatingManager {
             track.info.uri.match(/open\.spotify\.com\/track\/([A-Za-z0-9]+)/)?.[1] ??
             track.info.uri.match(/spotify:track:([A-Za-z0-9]+)/)?.[1] ??
             null);
+    }
+    appleMusicTrackId(track) {
+        if (/^\d+$/.test(track.info.identifier))
+            return track.info.identifier;
+        return track.info.uri.match(/[?&]i=(\d+)/)?.[1] ?? null;
+    }
+    appleMusicSearchQueries(track) {
+        const queries = [];
+        const add = (query) => {
+            const trimmed = query?.trim();
+            if (!trimmed || queries.includes(trimmed))
+                return;
+            queries.push(trimmed);
+        };
+        const author = track.info.author.trim();
+        const title = track.info.title.trim();
+        const album = String(track.pluginInfo?.albumName ?? '').trim();
+        add(author);
+        if (author && album)
+            add(`${author} ${album}`);
+        if (author && title)
+            add(`${author} ${title}`);
+        add(this.textQuery(track));
+        return queries.length ? queries : ['popular music'];
     }
     async requestJson(url, init) {
         const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });

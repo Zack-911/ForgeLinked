@@ -17,6 +17,7 @@ export declare class PlayerRelatingManager {
     private youtubeRelated;
     private soundCloudRelated;
     private spotifyRelated;
+    private appleMusicRelated;
     private soundCloudTrackId;
     private buildSearchAttempts;
     private textSearchSources;
@@ -31,5 +32,7 @@ export declare class PlayerRelatingManager {
     private broaderTextQueries;
     private youtubeVideoId;
     private spotifyTrackId;
+    private appleMusicTrackId;
+    private appleMusicSearchQueries;
     private requestJson;
 }
