@@ -23,6 +23,7 @@ var EqBand;
 var Gain;
 (function (Gain) {
     Gain[Gain["Muted"] = -0.25] = "Muted";
+    Gain[Gain["Disable"] = 0] = "Disable";
     Gain[Gain["VeryLow"] = 0.25] = "VeryLow";
     Gain[Gain["Half"] = 0.5] = "Half";
     Gain[Gain["SlightBoost"] = 0.75] = "SlightBoost";
