@@ -207,8 +207,7 @@ export class ForgeLinked extends ForgeExtension {
   }
 
   private _buildAutoPlayFunction():
-    | ((player: Player, lastPlayedTrack: Track) => Promise<void>)
-    | undefined {
+    ((player: Player, lastPlayedTrack: Track) => Promise<void>) | undefined {
     if (this.options.autoPlayFunction) return this.options.autoPlayFunction
 
     const relating = new PlayerRelatingManager({

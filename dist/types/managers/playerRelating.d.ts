@@ -27,6 +27,7 @@ export declare class PlayerRelatingManager {
     private hasSimilarLocalTitle;
     private hasSimilarTitle;
     private sourceName;
+    private shuffleArray;
     private normalize;
     private textQuery;
     private broaderTextQueries;

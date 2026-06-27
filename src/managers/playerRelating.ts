@@ -74,9 +74,12 @@ export class PlayerRelatingManager {
     const candidates = await this.relatedCandidates(baseTrack).catch(() => [])
     if (!candidates.length) return false
 
-    for (const candidate of candidates) {
-      if (this.isBlockedCandidate(player, baseTrack, candidate)) continue
+    const unblocked = candidates.filter(
+      (candidate) => !this.isBlockedCandidate(player, baseTrack, candidate),
+    )
+    const shuffled = this.shuffleArray(unblocked)
 
+    for (const candidate of shuffled) {
       const result = await player.search(candidate.url, baseTrack.requester).catch(() => null)
       if (
         !result ||
@@ -198,7 +201,7 @@ export class PlayerRelatingManager {
 
     const url = new URL(`https://api-v2.soundcloud.com/tracks/${trackId}/related`)
     url.searchParams.set('client_id', clientId)
-    url.searchParams.set('limit', '5')
+    url.searchParams.set('limit', '10')
 
     const res = await this.requestJson<{ collection?: any[] }>(url.toString(), {
       headers: localSearchHeaders,
@@ -245,7 +248,7 @@ export class PlayerRelatingManager {
       body: JSON.stringify({
         variables: {
           uri: `spotify:track:${trackId}`,
-          limit: 5,
+          limit: 10,
         },
         operationName: 'internalLinkRecommenderTrack',
         extensions: {
@@ -295,7 +298,7 @@ export class PlayerRelatingManager {
       url.searchParams.set('term', query)
       url.searchParams.set('media', 'music')
       url.searchParams.set('entity', 'song')
-      url.searchParams.set('limit', '15')
+      url.searchParams.set('limit', '10')
 
       const res = await this.requestJson<ItunesSearchResponse>(url.toString(), {
         headers: localSearchHeaders,
@@ -319,8 +322,6 @@ export class PlayerRelatingManager {
           title: item.trackName,
           author: item.artistName,
         })
-
-        if (candidates.length >= 10) return candidates
       }
     }
 
@@ -438,8 +439,7 @@ export class PlayerRelatingManager {
 
     if (!pool.length) return null
 
-    const candidates = pool.slice(0, 10)
-    return candidates[Math.floor(Math.random() * candidates.length)]
+    return this.shuffleArray(pool)[0]
   }
 
   private isBlockedCandidate(
@@ -508,6 +508,15 @@ export class PlayerRelatingManager {
     if (uri.includes('music.apple.com')) return 'applemusic'
     if (uri.includes('deezer.com')) return 'deezer'
     return ''
+  }
+
+  private shuffleArray<T>(array: T[]): T[] {
+    const arr = [...array]
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    return arr
   }
 
   private normalize(value: string): string {

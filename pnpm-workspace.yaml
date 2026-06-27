@@ -1,2 +1,4 @@
+minimumReleaseAgeExclude:
+  - prettier@3.9.0
 onlyBuiltDependencies:
   - '@discordjs/opus'
