@@ -122,8 +122,12 @@ export class LocalSearchAuthManager {
   }
 
   private async fetchText(url: string, init: RequestInit): Promise<string> {
-    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) })
-    if (!res.ok) throw new Error(`Request failed: ${res.status}`)
-    return res.text()
+    try {
+      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) })
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`)
+      return res.text()
+    } catch {
+      throw new Error('Fetch failed')
+    }
   }
 }

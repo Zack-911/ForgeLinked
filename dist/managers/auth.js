@@ -102,10 +102,15 @@ class LocalSearchAuthManager {
         return JSON.parse(text);
     }
     async fetchText(url, init) {
-        const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
-        if (!res.ok)
-            throw new Error(`Request failed: ${res.status}`);
-        return res.text();
+        try {
+            const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
+            if (!res.ok)
+                throw new Error(`Request failed: ${res.status}`);
+            return res.text();
+        }
+        catch {
+            throw new Error('Fetch failed');
+        }
     }
 }
 exports.LocalSearchAuthManager = LocalSearchAuthManager;

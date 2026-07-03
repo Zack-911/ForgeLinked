@@ -484,13 +484,18 @@ class PlayerRelatingManager {
         return queries.length ? queries : ['popular music'];
     }
     async requestJson(url, init) {
-        const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
-        const text = await res.text();
         try {
-            return { status: res.status, data: JSON.parse(text) };
+            const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) });
+            const text = await res.text();
+            try {
+                return { status: res.status, data: JSON.parse(text) };
+            }
+            catch {
+                return { status: res.status, data: null };
+            }
         }
         catch {
-            return { status: res.status, data: null };
+            return { status: 0, data: null };
         }
     }
 }

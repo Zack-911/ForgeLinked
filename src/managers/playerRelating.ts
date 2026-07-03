@@ -586,13 +586,17 @@ export class PlayerRelatingManager {
   }
 
   private async requestJson<T>(url: string, init: RequestInit): Promise<JsonResponse<T>> {
-    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) })
-    const text = await res.text()
-
     try {
-      return { status: res.status, data: JSON.parse(text) as T }
+      const res = await fetch(url, { ...init, signal: AbortSignal.timeout(15000) })
+      const text = await res.text()
+
+      try {
+        return { status: res.status, data: JSON.parse(text) as T }
+      } catch {
+        return { status: res.status, data: null }
+      }
     } catch {
-      return { status: res.status, data: null }
+      return { status: 0, data: null }
     }
   }
 }
