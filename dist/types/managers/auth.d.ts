@@ -19,19 +19,11 @@ export declare class LocalSearchAuthManager {
     private soundCloudClientId?;
     private spotifyAccessToken?;
     private spotifyClientToken?;
-    private currentTotpSecret;
-    private currentTotpVersion;
-    private lastSecretFetchTime;
-    private readonly secretFetchInterval;
     getSoundCloudClientId(refresh?: boolean): Promise<string | undefined>;
     getSpotifyAuth(refresh?: boolean): Promise<SpotifyAuth | null>;
     private getSpotifyClientToken;
     private getSpotifyAccessToken;
     private getSpotifyEmbedToken;
-    private ensureTotpSecrets;
-    private performSpotifyTokenRequest;
-    private decodeSpotifySecret;
-    private generateSpotifyTOTP;
     private fetchJson;
     private fetchText;
 }

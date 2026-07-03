@@ -20,13 +20,13 @@ importers:
     devDependencies:
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^6.0.2
-        version: 6.0.2(prettier@3.9.0)
+        version: 6.0.2(prettier@3.9.4)
       '@tryforge/forgescript':
         specifier: github:tryforge/ForgeScript#dev
-        version: https://codeload.github.com/tryforge/ForgeScript/tar.gz/15bee089b97eab0def71bec0cbfd8a380c6d85ac
+        version: https://codeload.github.com/tryforge/ForgeScript/tar.gz/c6bc5b1591446c6bf22bdc172aca4f516d0ffb71
       '@types/node':
-        specifier: ^26.0.1
-        version: 26.0.1
+        specifier: ^26.1.0
+        version: 26.1.0
       discord.js:
         specifier: ^14.26.4
         version: 14.26.4
@@ -34,8 +34,8 @@ importers:
         specifier: ^17.4.2
         version: 17.4.2
       prettier:
-        specifier: ^3.9.0
-        version: 3.9.0
+        specifier: ^3.9.4
+        version: 3.9.4
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -155,13 +155,13 @@ packages:
       svelte:
         optional: true
 
-  '@tryforge/forgescript@https://codeload.github.com/tryforge/ForgeScript/tar.gz/15bee089b97eab0def71bec0cbfd8a380c6d85ac':
-    resolution: {gitHosted: true, integrity: sha512-HTqi0IM8rP9sdEhEHud+5+VVPV+8rxzYGEMJS10cXsEIIb35YmFvjTeVp4xqgTkMlhlmV7f9MiTKiWsfOCeJbA==, tarball: https://codeload.github.com/tryforge/ForgeScript/tar.gz/15bee089b97eab0def71bec0cbfd8a380c6d85ac}
+  '@tryforge/forgescript@https://codeload.github.com/tryforge/ForgeScript/tar.gz/c6bc5b1591446c6bf22bdc172aca4f516d0ffb71':
+    resolution: {gitHosted: true, integrity: sha512-DdZOshWPQd/ZC2AR/0bditYapCXTmYOwBp86844MX26MP7EJscCn4rNsILfRz7vbKjMnp/OxzcTlGYpEfFeATQ==, tarball: https://codeload.github.com/tryforge/ForgeScript/tar.gz/c6bc5b1591446c6bf22bdc172aca4f516d0ffb71}
     version: 2.7.0
     engines: {node: '>=16.11.0'}
 
-  '@types/node@26.0.1':
-    resolution: {integrity: sha512-fc3KiUoBt6kie0N9bIW3E47vZsuaMf0PM2AaUpLCLT0s/LvX1nxAim6Fc049cNxODPpGm6qRAuUOB86SkRuPQw==}
+  '@types/node@26.1.0':
+    resolution: {integrity: sha512-O0A1G3xPGy4w7AgQdAQYUlQ+BKk2Oovw8eRpofyp5KdBZULnbe+WqaOVNrm705SHphCiG4XHsACrSmPu1f+Kgw==}
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
@@ -252,8 +252,8 @@ packages:
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
 
-  prettier@3.9.0:
-    resolution: {integrity: sha512-LjIqSIC5VYLzs9WedVmJ2ljNAGnU+DteIClbahu4L/DBeWjZ6iT/k1lAYyu9JUh+1xINxWadaPw/Pl63y/agAw==}
+  prettier@3.9.4:
+    resolution: {integrity: sha512-yWG/o/4oJfo036EKAfK6ACAoDOfHeRHx4tuxkfBZiauURiaSmYwlpOr5LQqKtIkRD2z1PLteme2WoxEnj4tHTg==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -417,7 +417,7 @@ snapshots:
 
   '@sapphire/snowflake@3.5.5': {}
 
-  '@trivago/prettier-plugin-sort-imports@6.0.2(prettier@3.9.0)':
+  '@trivago/prettier-plugin-sort-imports@6.0.2(prettier@3.9.4)':
     dependencies:
       '@babel/generator': 7.29.7
       '@babel/parser': 7.29.7
@@ -427,11 +427,11 @@ snapshots:
       lodash-es: 4.18.1
       minimatch: 9.0.9
       parse-imports-exports: 0.2.4
-      prettier: 3.9.0
+      prettier: 3.9.4
     transitivePeerDependencies:
       - supports-color
 
-  '@tryforge/forgescript@https://codeload.github.com/tryforge/ForgeScript/tar.gz/15bee089b97eab0def71bec0cbfd8a380c6d85ac':
+  '@tryforge/forgescript@https://codeload.github.com/tryforge/ForgeScript/tar.gz/c6bc5b1591446c6bf22bdc172aca4f516d0ffb71':
     dependencies:
       chalk: 5.6.2
       discord.js: 14.26.4
@@ -442,13 +442,13 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@types/node@26.0.1':
+  '@types/node@26.1.0':
     dependencies:
       undici-types: 8.3.0
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 26.0.1
+      '@types/node': 26.1.0
 
   '@vladfrangu/async_event_emitter@2.4.7': {}
 
@@ -529,7 +529,7 @@ snapshots:
 
   picocolors@1.1.1: {}
 
-  prettier@3.9.0: {}
+  prettier@3.9.4: {}
 
   tiny-typed-emitter@2.1.0: {}
 
