@@ -1,1 +1,1 @@
-{"version":3,"file":"ForgeLinkedCommandManager.js","sourceRoot":"","sources":["../../src/structures/ForgeLinkedCommandManager.ts"],"names":[],"mappings":";;;AAAA,uDAA0D;AAI7C,QAAA,WAAW,GAAG,aAAa,CAAA;AAExC,MAAa,yBAA0B,SAAQ,gCAA4C;IACzF,WAAW,GAAG,aAAa,CAAA;CAC5B;AAFD,8DAEC"}
+{"version":3,"file":"ForgeLinkedCommandManager.js","sourceRoot":"","sources":["../../src/structures/ForgeLinkedCommandManager.ts"],"names":[],"mappings":";;;AAAA,uDAA0D;AAI7C,QAAA,WAAW,GAAG,aAAa,CAAA;AAExC,+BAAuC,SAAQ,gCAA4C;IACzF,WAAW,GAAG,aAAa,CAAA;CAC5B"}
