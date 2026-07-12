@@ -121,9 +121,8 @@ Tweak how the built-in autoplay engine fetches related tracks via `autoplayOptio
 ```js
 const lavalink = new ForgeLinked({
   autoplayOptions: {
-    minFetchTracks: 1, // minimum tracks to queue per trigger
-    maxFetchTracks: 1, // maximum tracks to queue (caps the pre-fill)
-    retryLimit: 3, // retries if it can't reach minFetchTracks
+    maxFetchTracks: 1, // maximum tracks to queue per trigger (pre-fills the queue)
+    retryLimit: 3, // retries if no track could be added
     retryDuration: 5000, // delay (ms) between retries
   },
 })

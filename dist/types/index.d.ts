@@ -40,7 +40,6 @@ export interface ForgeLinkSetupOptions {
         maxPreviousTracks?: number;
     };
     autoplayOptions?: {
-        minFetchTracks?: number;
         maxFetchTracks?: number;
         retryLimit?: number;
         retryDuration?: number;

@@ -1,7 +1,6 @@
 import { Player, SearchPlatform, Track } from 'lavalink-client';
 import { LocalSearchAuthManager } from './auth.js';
 export interface PlayerRelatingAutoplayOptions {
-    minFetchTracks: number;
     maxFetchTracks: number;
     retryLimit: number;
     retryDuration: number;

@@ -12,10 +12,8 @@ class PlayerRelatingManager {
         this.options = options;
         this.auth = options.auth ?? new auth_js_1.LocalSearchAuthManager();
         const raw = options.autoplayOptions ?? {};
-        const maxFetchTracks = Math.max(1, Math.floor(raw.maxFetchTracks ?? 1));
         this.autoplayOptions = {
-            maxFetchTracks,
-            minFetchTracks: Math.min(maxFetchTracks, Math.max(1, Math.floor(raw.minFetchTracks ?? 1))),
+            maxFetchTracks: Math.max(1, Math.floor(raw.maxFetchTracks ?? 1)),
             retryLimit: Math.max(0, Math.floor(raw.retryLimit ?? 3)),
             retryDuration: Math.max(0, Math.floor(raw.retryDuration ?? 5000)),
         };
@@ -32,7 +30,7 @@ class PlayerRelatingManager {
             const localCandidates = await this.relatedCandidates(lastPlayedTrack).catch(() => []);
             for (let attempt = 0; attempt <= this.autoplayOptions.retryLimit; attempt++) {
                 await this.fillQueue(player, lastPlayedTrack, localCandidates);
-                if (player.queue.tracks.length >= this.autoplayOptions.minFetchTracks)
+                if (player.queue.tracks.length > 0)
                     return;
                 if (attempt < this.autoplayOptions.retryLimit) {
                     await this.sleep(this.autoplayOptions.retryDuration);
@@ -49,15 +47,24 @@ class PlayerRelatingManager {
             player.deleteData(this.lockKey);
         }
     }
-    async fillQueue(player, lastPlayedTrack, localCandidates) {
-        let added = 0;
+    async fillQueue(player, lastPlayedTrack, initialCandidates) {
+        let baseTrack = lastPlayedTrack;
+        let candidates = initialCandidates;
+        let chains = 0;
         while (player.queue.tracks.length < this.autoplayOptions.maxFetchTracks) {
-            const ok = await this.fetchOneTrack(player, lastPlayedTrack, localCandidates);
-            if (!ok)
+            const ok = await this.fetchOneTrack(player, baseTrack, candidates);
+            if (ok)
+                continue;
+            // The chain depth is capped at retryLimit so it can't loop indefinitely.
+            if (chains >= this.autoplayOptions.retryLimit)
                 break;
-            added++;
+            const last = player.queue.tracks[player.queue.tracks.length - 1];
+            if (!last || last === baseTrack)
+                break;
+            baseTrack = last;
+            candidates = await this.relatedCandidates(baseTrack).catch(() => []);
+            chains++;
         }
-        return added;
     }
     async fetchOneTrack(player, lastPlayedTrack, localCandidates) {
         if (await this.queueLocalRelatedCandidate(player, lastPlayedTrack, localCandidates))
@@ -175,7 +182,7 @@ class PlayerRelatingManager {
         }
         const url = new URL(`https://api-v2.soundcloud.com/tracks/${trackId}/related`);
         url.searchParams.set('client_id', clientId);
-        url.searchParams.set('limit', '10');
+        url.searchParams.set('limit', String(Math.min(this.autoplayOptions.maxFetchTracks, 20)));
         const res = await this.requestJson(url.toString(), {
             headers: auth_js_1.localSearchHeaders,
         });
@@ -216,7 +223,7 @@ class PlayerRelatingManager {
             body: JSON.stringify({
                 variables: {
                     uri: `spotify:track:${trackId}`,
-                    limit: 10,
+                    limit: Math.min(this.autoplayOptions.maxFetchTracks, 30),
                 },
                 operationName: 'internalLinkRecommenderTrack',
                 extensions: {
@@ -261,7 +268,7 @@ class PlayerRelatingManager {
             url.searchParams.set('term', query);
             url.searchParams.set('media', 'music');
             url.searchParams.set('entity', 'song');
-            url.searchParams.set('limit', '10');
+            url.searchParams.set('limit', String(Math.min(this.autoplayOptions.maxFetchTracks, 50)));
             const res = await this.requestJson(url.toString(), {
                 headers: auth_js_1.localSearchHeaders,
             });

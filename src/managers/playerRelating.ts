@@ -4,7 +4,6 @@ import { Player, SearchPlatform, Track } from 'lavalink-client'
 import { LocalSearchAuthManager, localSearchHeaders } from './auth.js'
 
 export interface PlayerRelatingAutoplayOptions {
-  minFetchTracks: number
   maxFetchTracks: number
   retryLimit: number
   retryDuration: number
@@ -58,10 +57,8 @@ export class PlayerRelatingManager {
     this.auth = options.auth ?? new LocalSearchAuthManager()
 
     const raw: Partial<PlayerRelatingAutoplayOptions> = options.autoplayOptions ?? {}
-    const maxFetchTracks = Math.max(1, Math.floor(raw.maxFetchTracks ?? 1))
     this.autoplayOptions = {
-      maxFetchTracks,
-      minFetchTracks: Math.min(maxFetchTracks, Math.max(1, Math.floor(raw.minFetchTracks ?? 1))),
+      maxFetchTracks: Math.max(1, Math.floor(raw.maxFetchTracks ?? 1)),
       retryLimit: Math.max(0, Math.floor(raw.retryLimit ?? 3)),
       retryDuration: Math.max(0, Math.floor(raw.retryDuration ?? 5000)),
     }
@@ -79,7 +76,7 @@ export class PlayerRelatingManager {
 
       for (let attempt = 0; attempt <= this.autoplayOptions.retryLimit; attempt++) {
         await this.fillQueue(player, lastPlayedTrack, localCandidates)
-        if (player.queue.tracks.length >= this.autoplayOptions.minFetchTracks) return
+        if (player.queue.tracks.length > 0) return
 
         if (attempt < this.autoplayOptions.retryLimit) {
           await this.sleep(this.autoplayOptions.retryDuration)
@@ -101,17 +98,26 @@ export class PlayerRelatingManager {
   private async fillQueue(
     player: Player,
     lastPlayedTrack: Track,
-    localCandidates: LocalRelatedCandidate[],
-  ): Promise<number> {
-    let added = 0
+    initialCandidates: LocalRelatedCandidate[],
+  ): Promise<void> {
+    let baseTrack = lastPlayedTrack
+    let candidates = initialCandidates
+    let chains = 0
 
     while (player.queue.tracks.length < this.autoplayOptions.maxFetchTracks) {
-      const ok = await this.fetchOneTrack(player, lastPlayedTrack, localCandidates)
-      if (!ok) break
-      added++
-    }
+      const ok = await this.fetchOneTrack(player, baseTrack, candidates)
+      if (ok) continue
 
-    return added
+      // The chain depth is capped at retryLimit so it can't loop indefinitely.
+      if (chains >= this.autoplayOptions.retryLimit) break
+
+      const last = player.queue.tracks[player.queue.tracks.length - 1] as Track | undefined
+      if (!last || last === baseTrack) break
+
+      baseTrack = last
+      candidates = await this.relatedCandidates(baseTrack).catch(() => [])
+      chains++
+    }
   }
 
   private async fetchOneTrack(
@@ -265,7 +271,7 @@ export class PlayerRelatingManager {
 
     const url = new URL(`https://api-v2.soundcloud.com/tracks/${trackId}/related`)
     url.searchParams.set('client_id', clientId)
-    url.searchParams.set('limit', '10')
+    url.searchParams.set('limit', String(Math.min(this.autoplayOptions.maxFetchTracks, 20)))
 
     const res = await this.requestJson<{ collection?: any[] }>(url.toString(), {
       headers: localSearchHeaders,
@@ -312,7 +318,7 @@ export class PlayerRelatingManager {
       body: JSON.stringify({
         variables: {
           uri: `spotify:track:${trackId}`,
-          limit: 10,
+          limit: Math.min(this.autoplayOptions.maxFetchTracks, 30),
         },
         operationName: 'internalLinkRecommenderTrack',
         extensions: {
@@ -362,7 +368,7 @@ export class PlayerRelatingManager {
       url.searchParams.set('term', query)
       url.searchParams.set('media', 'music')
       url.searchParams.set('entity', 'song')
-      url.searchParams.set('limit', '10')
+      url.searchParams.set('limit', String(Math.min(this.autoplayOptions.maxFetchTracks, 50)))
 
       const res = await this.requestJson<ItunesSearchResponse>(url.toString(), {
         headers: localSearchHeaders,
