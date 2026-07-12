@@ -141,6 +141,7 @@ class ForgeLinked extends forgescript_1.ForgeExtension {
         const relating = new playerRelating_js_1.PlayerRelatingManager({
             defaultAutoPlaySource: this.options.defaultAutoPlaySource,
             defaultSearchPlatform: this.options.playerOptions?.defaultSearchPlatform,
+            autoplayOptions: this.options.autoplayOptions,
         });
         return (player, lastPlayedTrack) => relating.autoplay(player, lastPlayedTrack);
     }

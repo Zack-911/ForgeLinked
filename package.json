@@ -19,14 +19,14 @@
   "type": "commonjs",
   "author": "Zack-911",
   "license": "GPL-3.0",
-  "packageManager": "pnpm@11.10.0",
+  "packageManager": "pnpm@11.12.0",
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@tryforge/forgescript": "github:tryforge/ForgeScript#dev",
     "@types/node": "^26.1.1",
-    "discord.js": "^14.26.4",
+    "discord.js": "^14.26.5",
     "dotenv": "^17.4.2",
-    "prettier": "^3.9.4",
+    "prettier": "^3.9.5",
     "typescript": "^7.0.2"
   },
   "dependencies": {

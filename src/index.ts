@@ -55,6 +55,12 @@ export interface ForgeLinkSetupOptions {
   queueOptions?: {
     maxPreviousTracks?: number
   }
+  autoplayOptions?: {
+    minFetchTracks?: number
+    maxFetchTracks?: number
+    retryLimit?: number
+    retryDuration?: number
+  }
   linksAllowed?: boolean
   linksBlacklist?: string[]
   linksWhitelist?: string[]
@@ -213,6 +219,7 @@ export class ForgeLinked extends ForgeExtension {
     const relating = new PlayerRelatingManager({
       defaultAutoPlaySource: this.options.defaultAutoPlaySource,
       defaultSearchPlatform: this.options.playerOptions?.defaultSearchPlatform,
+      autoplayOptions: this.options.autoplayOptions,
     })
 
     return (player: Player, lastPlayedTrack: Track): Promise<void> =>

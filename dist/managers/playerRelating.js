@@ -7,24 +7,40 @@ class PlayerRelatingManager {
     options;
     auth;
     lockKey = 'forgelinked_autoplay_running';
+    autoplayOptions;
     constructor(options = {}) {
         this.options = options;
         this.auth = options.auth ?? new auth_js_1.LocalSearchAuthManager();
+        const raw = options.autoplayOptions ?? {};
+        const maxFetchTracks = Math.max(1, Math.floor(raw.maxFetchTracks ?? 1));
+        this.autoplayOptions = {
+            maxFetchTracks,
+            minFetchTracks: Math.min(maxFetchTracks, Math.max(1, Math.floor(raw.minFetchTracks ?? 1))),
+            retryLimit: Math.max(0, Math.floor(raw.retryLimit ?? 3)),
+            retryDuration: Math.max(0, Math.floor(raw.retryDuration ?? 5000)),
+        };
     }
     async autoplay(player, lastPlayedTrack) {
         if (!player.autoPlay)
             return;
-        if (player.queue.tracks.length > 0)
+        if (player.queue.tracks.length >= this.autoplayOptions.maxFetchTracks)
             return;
         if (player.getData(this.lockKey))
             return;
         player.setData(this.lockKey, true);
         try {
-            if (await this.queueLocalRelatedCandidate(player, lastPlayedTrack))
-                return;
-            if (await this.queueLavalinkSearchCandidate(player, lastPlayedTrack))
-                return;
-            forgescript_1.Logger.warn(`ForgeLinked autoplay: no usable related track found for "${lastPlayedTrack.info.title}"`);
+            const localCandidates = await this.relatedCandidates(lastPlayedTrack).catch(() => []);
+            for (let attempt = 0; attempt <= this.autoplayOptions.retryLimit; attempt++) {
+                await this.fillQueue(player, lastPlayedTrack, localCandidates);
+                if (player.queue.tracks.length >= this.autoplayOptions.minFetchTracks)
+                    return;
+                if (attempt < this.autoplayOptions.retryLimit) {
+                    await this.sleep(this.autoplayOptions.retryDuration);
+                }
+            }
+            if (player.queue.tracks.length === 0) {
+                forgescript_1.Logger.warn(`ForgeLinked autoplay: no usable related track found for "${lastPlayedTrack.info.title}"`);
+            }
         }
         catch (err) {
             forgescript_1.Logger.error('ForgeLinked autoplay error:', err);
@@ -33,8 +49,27 @@ class PlayerRelatingManager {
             player.deleteData(this.lockKey);
         }
     }
-    async queueLocalRelatedCandidate(player, baseTrack) {
-        const candidates = await this.relatedCandidates(baseTrack).catch(() => []);
+    async fillQueue(player, lastPlayedTrack, localCandidates) {
+        let added = 0;
+        while (player.queue.tracks.length < this.autoplayOptions.maxFetchTracks) {
+            const ok = await this.fetchOneTrack(player, lastPlayedTrack, localCandidates);
+            if (!ok)
+                break;
+            added++;
+        }
+        return added;
+    }
+    async fetchOneTrack(player, lastPlayedTrack, localCandidates) {
+        if (await this.queueLocalRelatedCandidate(player, lastPlayedTrack, localCandidates))
+            return true;
+        if (await this.queueLavalinkSearchCandidate(player, lastPlayedTrack))
+            return true;
+        return false;
+    }
+    sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+    async queueLocalRelatedCandidate(player, baseTrack, candidates) {
         if (!candidates.length)
             return false;
         const unblocked = candidates.filter((candidate) => !this.isBlockedCandidate(player, baseTrack, candidate));
@@ -99,6 +134,9 @@ class PlayerRelatingManager {
             hl: 'en',
             gl: 'US',
         };
+        const visitorData = await this.auth.getYoutubeVisitor().catch(() => undefined);
+        if (visitorData)
+            client.visitorData = visitorData;
         const res = await this.requestJson('https://m.youtube.com/youtubei/v1/next?prettyPrint=false&fields=contents.twoColumnWatchNextResults.secondaryResults.secondaryResults.results(lockupViewModel)', {
             method: 'POST',
             headers: {

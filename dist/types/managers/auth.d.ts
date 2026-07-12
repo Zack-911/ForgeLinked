@@ -16,9 +16,11 @@ export interface SpotifyAuth {
     clientToken: string;
 }
 export declare class LocalSearchAuthManager {
+    private youtubeVisitorData?;
     private soundCloudClientId?;
     private spotifyAccessToken?;
     private spotifyClientToken?;
+    getYoutubeVisitor(): Promise<string | undefined>;
     getSoundCloudClientId(refresh?: boolean): Promise<string | undefined>;
     getSpotifyAuth(refresh?: boolean): Promise<SpotifyAuth | null>;
     private getSpotifyClientToken;

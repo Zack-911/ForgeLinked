@@ -15,9 +15,33 @@ exports.localSearchHeaders = {
     'User-Agent': exports.localSearchUserAgent,
 };
 class LocalSearchAuthManager {
+    youtubeVisitorData;
     soundCloudClientId;
     spotifyAccessToken;
     spotifyClientToken;
+    async getYoutubeVisitor() {
+        if (this.youtubeVisitorData)
+            return this.youtubeVisitorData;
+        try {
+            const text = await this.fetchText(`https://www.youtube.com/sw.js_data`, {
+                headers: exports.localSearchHeaders,
+            });
+            const dataLine = text
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line.startsWith('['))
+                .slice(-1)[0];
+            const parsed = dataLine ? JSON.parse(dataLine) : undefined;
+            const visitorData = parsed?.[0]?.[2]?.[6];
+            if (typeof visitorData !== 'string')
+                return undefined;
+            this.youtubeVisitorData = visitorData;
+            return visitorData;
+        }
+        catch {
+            return undefined;
+        }
+    }
     async getSoundCloudClientId(refresh = false) {
         if (!refresh && this.soundCloudClientId)
             return this.soundCloudClientId;
@@ -77,19 +101,15 @@ class LocalSearchAuthManager {
     }
     async getSpotifyEmbedToken() {
         const ids = [
-            '4PTG3Z6ehGkBFwjybzWkR8',
-            '2yR2sziCF4WEs3klW1F38d',
-            '0IuVhCflrQPMGRrOyoY5RW',
-            '2yWlGEgEfPot0lv3OAjuG3',
-            '4Xfp9BcKrKYmxJPxn68Yb8',
-            '7uuJqaRjSXzja6VGgDpWem',
+            'track/4cOdK2wGLETKBW3PvgPWqT',
+            'album/4NcNKEziN6KU6eBrKun7eg',
+            'artist/4sTQVOfp9vEMCemLw50sbu',
+            'track:46lFttIf5hnUZMGvjK0Wxo',
         ];
         const id = ids[Math.floor(Math.random() * ids.length)];
         try {
-            const text = await this.fetchText(`https://open.spotify.com/embed/track/${id}`, {
-                headers: {
-                    ...exports.localSearchHeaders,
-                },
+            const text = await this.fetchText(`https://open.spotify.com/embed/${id}`, {
+                headers: exports.localSearchHeaders,
             });
             return text.split('"accessToken":"')[1]?.split('"')[0];
         }

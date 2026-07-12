@@ -39,6 +39,12 @@ export interface ForgeLinkSetupOptions {
     queueOptions?: {
         maxPreviousTracks?: number;
     };
+    autoplayOptions?: {
+        minFetchTracks?: number;
+        maxFetchTracks?: number;
+        retryLimit?: number;
+        retryDuration?: number;
+    };
     linksAllowed?: boolean;
     linksBlacklist?: string[];
     linksWhitelist?: string[];

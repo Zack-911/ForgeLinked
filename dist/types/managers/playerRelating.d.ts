@@ -1,16 +1,27 @@
 import { Player, SearchPlatform, Track } from 'lavalink-client';
 import { LocalSearchAuthManager } from './auth.js';
+export interface PlayerRelatingAutoplayOptions {
+    minFetchTracks: number;
+    maxFetchTracks: number;
+    retryLimit: number;
+    retryDuration: number;
+}
 export interface PlayerRelatingOptions {
     defaultAutoPlaySource?: SearchPlatform;
     defaultSearchPlatform?: SearchPlatform;
     auth?: LocalSearchAuthManager;
+    autoplayOptions?: Partial<PlayerRelatingAutoplayOptions>;
 }
 export declare class PlayerRelatingManager {
     private readonly options;
     private readonly auth;
     private readonly lockKey;
+    private readonly autoplayOptions;
     constructor(options?: PlayerRelatingOptions);
     autoplay(player: Player, lastPlayedTrack: Track): Promise<void>;
+    private fillQueue;
+    private fetchOneTrack;
+    private sleep;
     private queueLocalRelatedCandidate;
     private queueLavalinkSearchCandidate;
     private relatedCandidates;
