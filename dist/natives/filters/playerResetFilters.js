@@ -35,7 +35,7 @@ exports.default = new forgescript_1.NativeFunction({
             await player.filterManager.resetFilters();
             return this.successJSON({
                 success: true,
-                filters: JSON.parse(JSON.stringify(player.filterManager.filters)),
+                filters: player.filterManager.filters,
             });
         }
         catch (err) {

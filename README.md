@@ -114,6 +114,22 @@ Available:
 * `soundcloud`
 * `spotify` (if enabled)
 
+### Configure Autoplay
+
+Tweak how the built-in autoplay engine fetches related tracks via `autoplayOptions`:
+
+```js
+const lavalink = new ForgeLinked({
+  autoplayOptions: {
+    maxFetchTracks: 1, // maximum tracks to queue per trigger (pre-fills the queue)
+    retryLimit: 3, // retries if no track could be added
+    retryDuration: 5000, // delay (ms) between retries
+  },
+})
+```
+
+These options only affect the **built-in** autoplay engine. Autoplay must also be enabled per-player using `$playerSetAutoPlay` or `$playerToggleAutoPlay`.
+
 ---
 
 ## 📄 License

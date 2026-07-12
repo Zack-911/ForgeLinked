@@ -40,8 +40,13 @@ export default new NativeFunction({
         return this.customError(
           'Lavalink node is not connected. Please wait for the node to reconnect.',
         )
-      const res = await player.filterManager.toggleRotation(rotationHz as number | undefined)
-      return this.successJSON(JSON.stringify(res))
+      await player.filterManager.toggleRotation(rotationHz as number | undefined)
+      return this.successJSON({
+        success: true,
+        active: player.filterManager.filters.rotation,
+        filters: player.filterManager.filters,
+        data: player.filterManager.data,
+      })
     } catch (err) {
       return this.customError(
         `Failed to toggle rotation: ${err instanceof Error ? err.message : String(err)}`,

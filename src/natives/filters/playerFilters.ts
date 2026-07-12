@@ -28,6 +28,6 @@ export default new NativeFunction({
       )
     const player = linked.getPlayer(guildId.id)
     if (!player) return this.customError('Player not found')
-    return this.successJSON(JSON.parse(JSON.stringify(player.filterManager.filters)))
+    return this.successJSON(player.filterManager.filters)
   },
 })

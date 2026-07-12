@@ -18,6 +18,7 @@ declare enum EqBand {
 }
 declare enum Gain {
     Muted = -0.25,
+    Disable = 0,
     VeryLow = 0.25,
     Half = 0.5,
     SlightBoost = 0.75,
