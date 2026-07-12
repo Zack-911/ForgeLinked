@@ -223,7 +223,7 @@ class PlayerRelatingManager {
             body: JSON.stringify({
                 variables: {
                     uri: `spotify:track:${trackId}`,
-                    limit: Math.min(this.autoplayOptions.maxFetchTracks, 30),
+                    limit: Math.min(this.autoplayOptions.maxFetchTracks, 20),
                 },
                 operationName: 'internalLinkRecommenderTrack',
                 extensions: {
@@ -315,6 +315,8 @@ class PlayerRelatingManager {
         const add = (query, source) => {
             const trimmed = query.trim();
             if (!trimmed || !source)
+                return;
+            if (trimmed.toLowerCase() === 'null')
                 return;
             const attempt = { query: trimmed, source: source };
             if (attempts.some((item) => item.query === attempt.query && item.source === attempt.source))
@@ -474,16 +476,25 @@ class PlayerRelatingManager {
         return arr;
     }
     normalize(value) {
-        return value
+        return (value ?? '')
+            .toString()
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, ' ')
             .trim();
     }
     textQuery(track) {
-        return `${track.info.author} ${track.info.title}`.trim() || track.info.title || 'popular music';
+        const author = (track.info.author ?? '').toString().trim();
+        const title = (track.info.title ?? '').toString().trim();
+        if (author && title)
+            return `${author} ${title}`;
+        if (title)
+            return title;
+        if (author)
+            return author;
+        return 'popular music';
     }
     broaderTextQueries(track) {
-        const author = track.info.author.trim();
+        const author = (track.info.author ?? '').toString().trim();
         if (!author)
             return ['popular music'];
         return [`${author} mix`, `${author} songs`];
@@ -517,8 +528,8 @@ class PlayerRelatingManager {
                 return;
             queries.push(trimmed);
         };
-        const author = track.info.author.trim();
-        const title = track.info.title.trim();
+        const author = (track.info.author ?? '').toString().trim();
+        const title = (track.info.title ?? '').toString().trim();
         const album = String(track.pluginInfo?.albumName ?? '').trim();
         add(author);
         if (author && album)
